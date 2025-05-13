@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Flask App - Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        main {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .home-container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .home-content {
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 30px;
+        }
+        .call-to-action {
+            background-color: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+            display: inline-block;
+        }
+        .call-to-action:hover {
+            background-color: #0056b3;
+        }
+        .features {
+            margin-top: 30px;
+        }
+        .features h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+        .features li {
+            margin-bottom: 10px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('translate') }}">Translate</a></li>
+                <li><a href="{{ url_for('account') }}">Account</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <div class="home-container">
+            <h1>Welcome to Our Simple Translator</h1>
+            <p class="home-content">We recognize text from images using Machine learning and translate it to english. Ready to try our simple app using EasyOCR?</p>
+            <a href="{{ url_for('translate') }}" class="call-to-action">Go to Translator</a>
+
+            <div class="features">
+                <h2>Key Features:</h2>
+                <ul>
+                    <li>Effortlessly recognize text from images.</li>
+                    <li>Translate recognized text into English language.</li>
+                    <li>A free and easy to use Machine translation.</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2025 Flask App</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Flask App - About</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <header>
+      <nav>
+        <ul>
+          <li><a href="{{ url_for('index') }}">Home</a></li>
+          <li><a href="{{ url_for('translate') }}">Translate</a></li>
+          <li><a href="{{ url_for('account') }}">Account</a></li>
+        </ul>
+      </nav>
+    </header>
+    <main class="translate-page">
+      <h1>Machine Learning Image to Text Translation</h1>
+      <div class="translate-container">
+        <div class="input-section">
+          <div class="camera-section">
+            <video id="camera-feed" autoplay></video>
+            <button id="start-camera">Start Camera</button>
+            <button id="stop-camera">Stop Camera</button>
+            <button id="capture-image">Capture Image</button>
+            <canvas id="captured-canvas" style="display: none"></canvas>
+          </div>
+          <div class="upload-section">
+            <label for="image-upload">Upload an image:</label>
+            <input type="file" id="image-upload" accept="image/*" />
+          </div>
+        </div>
+
+        <div class="output-section">
+          <div>
+            <label for="recognized-text">Recognized Text:</label>
+            <textarea
+              class="recognized-text"
+              id="recognized-text"
+              readonly
+              placeholder="Text from the image will appear here"
+            ></textarea>
+          </div>
+          <div>
+            <label for="target-language">Translate to:</label>
+            <select id="target-language">
+              <option value="EN-US">English</option>
+            </select>
+          </div>
+          <div class="process-button">
+            <button id="process-image">
+              Process and Translate <span></span>
+            </button>
+            <div class="spinner"></div>
+          </div>
+          <div>
+            <h3 class="translation-header">Translation:</h3>
+            <div id="translation-output"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const cameraFeed = document.getElementById("camera-feed");
+      const startCameraButton = document.getElementById("start-camera");
+      const stopCameraButton = document.getElementById("stop-camera"); // Get the new button
+      const captureImageButton = document.getElementById("capture-image");
+      const capturedCanvas = document.getElementById("captured-canvas");
+      const imageUpload = document.getElementById("image-upload");
+      const recognizedTextarea = document.getElementById("recognized-text");
+      const processImageButton = document.getElementById("process-image");
+      const translationOutputDiv =
+        document.getElementById("translation-output");
+      const targetLanguageSelect = document.getElementById("target-language");
+      let stream;
+      let capturedImageBase64 = null;
+      let uploadedImageFile = null;
+
+      startCameraButton.addEventListener("click", async () => {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          cameraFeed.srcObject = stream;
+          // Enable the stop button once the camera starts
+          stopCameraButton.disabled = false;
+          startCameraButton.disabled = true;
+        } catch (error) {
+          console.error("Error accessing camera:", error);
+          alert("Could not access the camera.");
+        }
+      });
+
+      stopCameraButton.addEventListener("click", () => {
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+          cameraFeed.srcObject = null;
+          // Disable the stop button and enable the start button
+          stopCameraButton.disabled = true;
+          startCameraButton.disabled = false;
+        }
+      });
+
+      captureImageButton.addEventListener("click", () => {
+        if (cameraFeed.srcObject) {
+          const context = capturedCanvas.getContext("2d");
+          capturedCanvas.width = cameraFeed.videoWidth;
+          capturedCanvas.height = cameraFeed.videoHeight;
+          context.drawImage(
+            cameraFeed,
+            0,
+            0,
+            capturedCanvas.width,
+            capturedCanvas.height
+          );
+          capturedImageBase64 = capturedCanvas.toDataURL("image/jpeg");
+        } else {
+          alert("Please start the camera first.");
+        }
+      });
+
+      imageUpload.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          uploadedImageFile = file;
+        }
+      });
+
+      processImageButton.addEventListener("click", async () => {
+        // Disable the button and show the spinner
+        processImageButton.textContent = "Processing...";
+        processImageButton.disabled = true;
+        const spinner = document.querySelector(".spinner");
+        if (spinner) {
+          spinner.style.display = "inline-block";
+        }
+
+        const targetLanguage = targetLanguageSelect.value;
+        let formData = new FormData();
+
+        if (capturedImageBase64) {
+          formData.append("image_data", capturedImageBase64);
+        } else if (uploadedImageFile) {
+          formData.append("image_file", uploadedImageFile);
+        } else {
+          alert("Please capture an image or upload one.");
+          processImageButton.textContent = "Process and Translate";
+          processImageButton.disabled = false;
+          if (spinner) {
+            spinner.style.display = "none";
+          }
+          return;
+        }
+        formData.append("target_language", targetLanguage);
+
+        try {
+          console.log("Sending image data to server...");
+          const response = await fetch("/translate", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await response.json();
+          recognizedTextarea.value = data.recognized_text;
+          translationOutputDiv.textContent = data.translated_text;
+          console.log("Response:", data);
+          processImageButton.textContent = "Process and Translate";
+          processImageButton.disabled = false;
+          if (spinner) {
+            spinner.style.display = "none";
+          }
+          // Clear captured image data and reset UI elements
+          capturedImageBase64 = null;
+          if (cameraFeed.srcObject) {
+            cameraFeed.srcObject
+              .getVideoTracks()
+              .forEach((track) => track.stop());
+            cameraFeed.srcObject = null;
+          }
+          imageUpload.value = null; // Reset the file input
+        } catch (error) {
+          console.error("Error processing image:", error);
+          alert("Failed to process the image.");
+          processImageButton.textContent = "Process and Translate";
+          processImageButton.disabled = false;
+          if (spinner) {
+            spinner.style.display = "none";
+          }
+          // Optionally clear UI elements on error as well
+          capturedImageBase64 = null;
+          if (cameraFeed.srcObject) {
+            cameraFeed.srcObject
+              .getVideoTracks()
+              .forEach((track) => track.stop());
+            cameraFeed.srcObject = null;
+          }
+          imageUpload.value = ""; // Reset the file input
+        }
+      });
+
+      // Initially disable the stop button
+      stopCameraButton.disabled = true;
+    </script>
+  </body>
+</html>
